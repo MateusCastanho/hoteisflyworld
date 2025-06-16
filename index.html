@@ -8,7 +8,7 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- Leaflet.js para os mapas interativos -->
+    <!-- Leaflet.js -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     
@@ -23,180 +23,215 @@
 
     <style>
         body { font-family: 'Inter', sans-serif; }
-        #admin-map, #user-map {
-            height: 100%;
-            width: 100%;
-            min-height: 500px;
-            border-radius: 0.5rem;
-            z-index: 0;
-        }
-        #user-view { height: calc(100vh - 80px); }
-        .leaflet-popup-content-wrapper, .leaflet-popup-tip {
-            background: white;
-            color: #333;
-            border-radius: 0.5rem;
-        }
+        #admin-map, #user-map { height: 100%; width: 100%; min-height: 500px; border-radius: 0.5rem; z-index: 0; }
+        .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: white; color: #333; border-radius: 0.5rem; }
         #itinerary-modal-content { max-height: 70vh; }
         .spinner-sm { width: 1rem; height: 1rem; border-width: 2px; }
     </style>
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-500">
 
-    <!-- Botão para alternar a visão -->
+    <!-- Botão de Autenticação / Logout -->
     <div class="fixed top-4 right-4 z-[1001]">
-        <button id="toggle-view-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow-lg flex items-center">
-            <ion-icon name="person-outline" class="mr-2"></ion-icon>
-            <span id="toggle-view-text">Ver como Cliente</span>
+        <button id="auth-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-full shadow-lg flex items-center justify-center w-12 h-12">
+            <ion-icon id="auth-icon" name="key-outline" class="text-2xl"></ion-icon>
+            <span id="auth-btn-text" class="hidden"></span>
         </button>
     </div>
 
-    <!-- ===== Visão do Administrador (Padrão) ===== -->
-    <div id="admin-view">
+    <!-- ===== Visão do Administrador (Oculta por padrão) ===== -->
+    <div id="admin-view" class="hidden">
         <div class="container mx-auto p-4 md:p-8 mt-16">
-            <header class="text-center mb-8">
-                <h1 class="text-4xl md:text-5xl font-bold text-indigo-600 dark:text-indigo-400">Painel do Administrador</h1>
-                <p class="mt-2 text-lg text-gray-600 dark:text-gray-400">Adicione e gerencie as recomendações de hotéis.</p>
-            </header>
-            <main class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div class="flex flex-col gap-8">
-                    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
-                        <h2 class="text-2xl font-bold mb-4">Adicionar um Novo Hotel</h2>
-                        <form id="hotel-form" class="space-y-4">
-                            <input type="text" id="hotel-search-query" placeholder="Busque pelo nome ou endereço do hotel..." required class="w-full p-3 bg-gray-200 dark:bg-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                            <div class="relative">
-                                <textarea id="hotel-description" placeholder="Descrição (opcional) ou pontos-chave para a IA" rows="3" class="w-full p-3 bg-gray-200 dark:bg-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
-                                <button type="button" id="enrich-description-btn" class="absolute bottom-2 right-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold py-1 px-2 rounded-md flex items-center">
-                                    <span class="mr-1">✨</span> Enriquecer com IA
-                                    <div id="enrich-spinner" class="animate-spin rounded-full border-white border-t-transparent ml-2 spinner-sm hidden"></div>
-                                </button>
-                            </div>
-                            <button type="submit" id="submit-button" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-md transition-all duration-300 flex items-center justify-center">
-                                <span id="button-text">Buscar e Adicionar Hotel</span>
-                                <div id="loading-spinner" class="animate-spin rounded-full h-5 w-5 border-4 border-white border-t-transparent ml-3 hidden"></div>
-                            </button>
-                            <div id="form-notification" class="mt-2 text-center text-sm h-5"></div>
-                        </form>
-                    </div>
-                    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
-                        <h2 class="text-2xl font-bold mb-4">Nossas Recomendações</h2>
-                        <div id="admin-hotel-list" class="space-y-4 max-h-[28rem] overflow-y-auto pr-2"></div>
-                    </div>
-                </div>
-                <div class="bg-white dark:bg-gray-800 p-2 rounded-lg shadow-lg"><div id="admin-map"></div></div>
-            </main>
+             <header class="text-center mb-8"><h1 class="text-4xl md:text-5xl font-bold text-indigo-600 dark:text-indigo-400">Painel do Administrador</h1><p class="mt-2 text-lg text-gray-600 dark:text-gray-400">Adicione e gerencie as recomendações de hotéis.</p></header>
+             <main class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                 <div class="flex flex-col gap-8">
+                     <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg"><h2 class="text-2xl font-bold mb-4">Adicionar um Novo Hotel</h2><form id="hotel-form" class="space-y-4"><input type="text" id="hotel-search-query" placeholder="Busque pelo nome ou endereço do hotel..." required class="w-full p-3 bg-gray-200 dark:bg-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"><div class="relative"><textarea id="hotel-description" placeholder="Descrição (opcional) ou pontos-chave para a IA" rows="3" class="w-full p-3 bg-gray-200 dark:bg-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea><button type="button" id="enrich-description-btn" class="absolute bottom-2 right-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold py-1 px-2 rounded-md flex items-center"><span class="mr-1">✨</span> Enriquecer com IA<div id="enrich-spinner" class="animate-spin rounded-full border-white border-t-transparent ml-2 spinner-sm hidden"></div></button></div><button type="submit" id="submit-button" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-md transition-all duration-300 flex items-center justify-center"><span id="button-text">Buscar e Adicionar Hotel</span><div id="loading-spinner" class="animate-spin rounded-full h-5 w-5 border-4 border-white border-t-transparent ml-3 hidden"></div></button><div id="form-notification" class="mt-2 text-center text-sm h-5"></div></form></div>
+                     <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg"><h2 class="text-2xl font-bold mb-4">Nossas Recomendações</h2><div id="admin-hotel-list" class="space-y-4 max-h-[28rem] overflow-y-auto pr-2"></div></div>
+                 </div>
+                 <div class="bg-white dark:bg-gray-800 p-2 rounded-lg shadow-lg"><div id="admin-map"></div></div>
+             </main>
         </div>
     </div>
 
-    <!-- ===== Visão do Cliente (Oculta por padrão) ===== -->
+    <!-- ===== Visão do Cliente (Padrão) ===== -->
     <div id="user-view" class="hidden">
-        <div class="relative w-full h-full">
+        <header class="text-center pt-8 mb-4"><h1 class="text-4xl md:text-5xl font-bold text-indigo-600 dark:text-indigo-400">Hotéis Recomendados</h1><p class="mt-2 text-lg text-gray-600 dark:text-gray-400">Uma seleção exclusiva de hotéis que conhecemos e confiamos.</p></header>
+        <div class="relative w-full h-[calc(100vh-150px)] px-4">
             <div id="user-map" class="w-full h-full"></div>
-            <div class="absolute top-4 left-1/2 -translate-x-1/2 w-11/12 md:w-1/2 lg:w-1/3 z-[1000]">
-                 <div class="relative">
-                    <input type="search" id="user-search" placeholder="Buscar por hotel ou cidade..." class="w-full p-4 pr-12 text-lg bg-white dark:bg-gray-800 rounded-full shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    <ion-icon name="search-outline" class="absolute top-1/2 right-4 -translate-y-1/2 text-2xl text-gray-400"></ion-icon>
-                 </div>
-            </div>
+            <div class="absolute top-4 left-1/2 -translate-x-1/2 w-11/12 md:w-1/2 lg:w-1/3 z-[1000]"><div class="relative"><input type="search" id="user-search" placeholder="Buscar por hotel ou cidade..." class="w-full p-4 pr-12 text-lg bg-white dark:bg-gray-800 rounded-full shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"><ion-icon name="search-outline" class="absolute top-1/2 right-4 -translate-y-1/2 text-2xl text-gray-400"></ion-icon></div></div>
             <div id="user-results-list" class="absolute top-24 left-4 w-full max-w-sm z-[1000] space-y-2 max-h-[calc(100%-120px)] overflow-y-auto"></div>
         </div>
     </div>
 
     <!-- ===== Modals ===== -->
-    <div id="itinerary-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[1002] hidden items-center justify-center p-4">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl transform transition-all"><div class="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center"><h3 class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">Sugestão de Roteiro</h3><button id="close-itinerary-modal-btn" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"><ion-icon name="close-outline" class="text-3xl"></ion-icon></button></div><div id="itinerary-modal-content" class="p-6 overflow-y-auto"><div id="itinerary-loader" class="flex flex-col items-center justify-center h-64"><div class="animate-spin rounded-full h-16 w-16 border-8 border-indigo-500 border-t-transparent"></div><p class="mt-4 text-lg">Criando um roteiro...</p></div><div id="itinerary-content" class="prose dark:prose-invert max-w-none"></div></div></div>
+    <div id="login-modal" class="fixed inset-0 bg-black bg-opacity-60 z-[1003] hidden items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-sm transform transition-all p-8">
+            <h3 class="text-2xl font-bold mb-6 text-center">Acesso Restrito</h3>
+            <form id="login-form">
+                <div class="space-y-4">
+                    <input id="login-password" type="password" placeholder="Senha" required class="w-full p-3 bg-gray-200 dark:bg-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-md">Entrar</button>
+                    <p id="login-error-message" class="text-red-500 text-center h-4"></p>
+                </div>
+            </form>
+        </div>
     </div>
     <div id="delete-confirmation-modal" class="fixed inset-0 bg-black bg-opacity-60 z-[1003] hidden items-center justify-center p-4">
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md transform transition-all p-6 text-center"><h3 class="text-xl font-bold mb-4">Confirmar Exclusão</h3><p class="text-gray-600 dark:text-gray-300 mb-6">Você tem certeza que deseja excluir este hotel? Esta ação não pode ser desfeita.</p><div class="flex justify-center gap-4"><button id="cancel-delete-btn" class="py-2 px-6 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-400">Cancelar</button><button id="confirm-delete-btn" class="py-2 px-6 bg-red-600 text-white rounded-lg hover:bg-red-700">Excluir</button></div></div>
     </div>
+    <!-- Outros modals como o de roteiro permanecem aqui se necessário -->
+
 
     <script type="module">
         // Importações do Firebase
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getFirestore, collection, addDoc, onSnapshot, query, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
         // --- CONFIGURAÇÃO E VARIÁVEIS GLOBAIS ---
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-        let db;
+        // Configuração do Firebase (corrigida)
+        const firebaseConfig = {
+          apiKey: "AIzaSyAIqWtwkMG2iS0dKIU2ekayHMZeiqCXLI",
+          authDomain: "hoteis-flyworld.firebaseapp.com",
+          projectId: "hoteis-flyworld",
+          storageBucket: "hoteis-flyworld.firebasestorage.app", // CORRIGIDO
+          messagingSenderId: "973675614397",
+          appId: "1:973675614397:web:88f48efe4b651e3422a7d4"
+        };
+        
+        let db, auth;
         try {
             const app = initializeApp(firebaseConfig);
             db = getFirestore(app);
-            const auth = getAuth(app);
-            if (initialAuthToken) { await signInWithCustomToken(auth, initialAuthToken); } 
-            else { await signInAnonymously(auth); }
+            auth = getAuth(app);
         } catch (error) { console.error("Erro fatal ao inicializar o Firebase:", error); }
 
-        const hotelsCollectionPath = `artifacts/${appId}/public/data/hotels`;
-        let allHotels = [], currentView = 'admin';
+        const hotelsCollectionPath = `hoteis`; // Simplificado para funcionar globalmente
+        let allHotels = [];
+        let hotelsListenerUnsubscribe = null;
 
         // --- ELEMENTOS DO DOM ---
-        const adminView = document.getElementById('admin-view'), userView = document.getElementById('user-view'), toggleBtn = document.getElementById('toggle-view-btn');
-        const hotelForm = document.getElementById('hotel-form'), submitButton = document.getElementById('submit-button');
-        const adminHotelList = document.getElementById('admin-hotel-list'), userSearchInput = document.getElementById('user-search');
-        const itineraryModal = document.getElementById('itinerary-modal'), closeItineraryModalBtn = document.getElementById('close-itinerary-modal-btn');
-        const deleteModal = document.getElementById('delete-confirmation-modal'), confirmDeleteBtn = document.getElementById('confirm-delete-btn'), cancelDeleteBtn = document.getElementById('cancel-delete-btn');
-
+        const adminView = document.getElementById('admin-view'), userView = document.getElementById('user-view');
+        const authBtn = document.getElementById('auth-btn'), authIcon = document.getElementById('auth-icon');
+        const loginModal = document.getElementById('login-modal'), loginForm = document.getElementById('login-form');
+        const hotelForm = document.getElementById('hotel-form'), adminHotelList = document.getElementById('admin-hotel-list');
+        const deleteModal = document.getElementById('delete-confirmation-modal');
+        
         // --- INICIALIZAÇÃO DOS MAPAS ---
-        const mapTileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'; // Mapa padrão com nomes locais
+        const mapTileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
         const mapTileOptions = { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' };
+        let adminMap, userMap, adminMarkerGroup, userMarkerGroup;
 
-        const adminMap = L.map('admin-map').setView([20, 0], 2);
-        L.tileLayer(mapTileUrl, mapTileOptions).addTo(adminMap);
-        const adminMarkerGroup = L.layerGroup().addTo(adminMap);
-
-        const userMap = L.map('user-map').setView([20, 0], 2);
-        L.tileLayer(mapTileUrl, mapTileOptions).addTo(userMap);
-        const userMarkerGroup = L.layerGroup().addTo(userMap);
-
-        // --- FUNÇÃO PARA CHAMAR A API GEMINI ---
-        async function callGemini(prompt) {
-             const apiKey = "";
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-            const payload = { contents: [{ role: "user", parts: [{ text: prompt }] }] };
-            try {
-                const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                if (!response.ok) { throw new Error(`Erro na API Gemini: ${response.status}`); }
-                const result = await response.json();
-                return result.candidates?.[0]?.content?.parts?.[0]?.text || "A IA retornou uma resposta vazia.";
-            } catch (error) {
-                console.error("Erro ao chamar a API Gemini:", error);
-                return "Ocorreu um erro ao contatar a IA. Tente novamente.";
+        function initAdminMap() {
+            if (!adminMap) {
+                adminMap = L.map('admin-map').setView([20, 0], 2);
+                L.tileLayer(mapTileUrl, mapTileOptions).addTo(adminMap);
+                adminMarkerGroup = L.layerGroup().addTo(adminMap);
+            }
+        }
+        function initUserMap() {
+             if (!userMap) {
+                userMap = L.map('user-map').setView([20, 0], 2);
+                L.tileLayer(mapTileUrl, mapTileOptions).addTo(userMap);
+                userMarkerGroup = L.layerGroup().addTo(userMap);
             }
         }
         
-        // --- LÓGICA DE ALTERNÂNCIA DE VISÃO ---
-        toggleBtn.addEventListener('click', () => {
-            document.getElementById('admin-view').classList.toggle('hidden');
-            document.getElementById('user-view').classList.toggle('hidden');
-            const toggleBtnText = document.getElementById('toggle-view-text');
-            const toggleIcon = toggleBtn.querySelector('ion-icon');
-
-            if (currentView === 'admin') {
-                currentView = 'user';
-                toggleBtnText.textContent = 'Ver como Admin';
-                toggleIcon.name = 'build-outline';
-                userMap.invalidateSize(); // Essencial para o mapa renderizar corretamente
-                renderUserView(allHotels);
+        // --- LÓGICA DE AUTENTICAÇÃO ---
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                if (user.isAnonymous) {
+                    userView.classList.remove('hidden');
+                    adminView.classList.add('hidden');
+                    authIcon.name = 'key-outline';
+                    authBtn.classList.remove('bg-red-600', 'hover:bg-red-700');
+                    authBtn.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
+                    initUserMap();
+                } else {
+                    adminView.classList.remove('hidden');
+                    userView.classList.add('hidden');
+                    loginModal.classList.add('hidden');
+                    authIcon.name = 'log-out-outline';
+                    authBtn.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
+                    authBtn.classList.add('bg-red-600', 'hover:bg-red-700');
+                    initAdminMap();
+                }
+                listenForHotels();
             } else {
-                currentView = 'admin';
-                toggleBtnText.textContent = 'Ver como Cliente';
-                toggleIcon.name = 'person-outline';
-                adminMap.invalidateSize(); // Essencial para o mapa renderizar corretamente
+                signInAnonymously(auth).catch((error) => {
+                    console.error("Erro ao fazer login anônimo:", error);
+                });
             }
         });
 
-        // --- LÓGICA DA VISÃO DO ADMIN ---
-        hotelForm.addEventListener('submit', async (e) => {
+        authBtn.addEventListener('click', () => {
+            if (auth.currentUser && !auth.currentUser.isAnonymous) {
+                signOut(auth);
+            } else {
+                loginModal.classList.remove('hidden');
+                loginModal.classList.add('flex');
+            }
+        });
+        
+        loginModal.addEventListener('click', (e) => {
+            if (e.target === loginModal) {
+                loginModal.classList.add('hidden');
+            }
+        });
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            // Email fixo para simplificar o login para o usuário final
+            const email = "admin@hoteis.com";
+            const password = document.getElementById('login-password').value;
+            const errorMessage = document.getElementById('login-error-message');
+            errorMessage.textContent = '';
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                // onAuthStateChanged vai cuidar da mudança de tela
+            } catch (error) {
+                console.error('Erro de login:', error.code);
+                errorMessage.textContent = 'Senha inválida.';
+            }
+        });
+
+        // --- LÓGICA GERAL ---
+        const showDeleteModal = (id) => { deleteModal.dataset.deleteId = id; deleteModal.classList.remove('hidden'); deleteModal.classList.add('flex'); };
+        const hideDeleteModal = () => { deleteModal.classList.add('hidden'); deleteModal.classList.remove('flex'); };
+        
+        adminHotelList.addEventListener('click', (e) => {
+            const infoDiv = e.target.closest('.info-div-js');
+            const deleteButton = e.target.closest('.delete-btn-js');
+
+            if (infoDiv) {
+                adminMap.flyTo([infoDiv.dataset.lat, infoDiv.dataset.lon], 14);
+            } else if (deleteButton) {
+                showDeleteModal(deleteButton.dataset.id);
+            }
+        });
+
+        document.getElementById('cancel-delete-btn').addEventListener('click', hideDeleteModal);
+        document.getElementById('confirm-delete-btn').addEventListener('click', async () => {
+             const hotelId = deleteModal.dataset.deleteId;
+            if (hotelId && db) {
+                try {
+                    await deleteDoc(doc(db, hotelsCollectionPath, hotelId));
+                } catch (error) { console.error("Erro ao excluir o hotel: ", error); } 
+                finally { hideDeleteModal(); }
+            }
+        });
+
+         hotelForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const buttonText = document.getElementById('button-text');
             const loadingSpinner = document.getElementById('loading-spinner');
             const formNotification = document.getElementById('form-notification');
 
+            if (!db) { formNotification.textContent = "Erro: Banco de dados não conectado."; return; }
+
             buttonText.textContent = 'Buscando...';
             loadingSpinner.classList.remove('hidden');
-            submitButton.disabled = true;
+            document.getElementById('submit-button').disabled = true;
 
             const searchQuery = document.getElementById('hotel-search-query').value;
             const description = document.getElementById('hotel-description').value;
@@ -212,66 +247,24 @@
                     const hotelData = { name: foundName, location: result.display_name, description: description, lat: parseFloat(result.lat), lon: parseFloat(result.lon) };
                     await addDoc(collection(db, hotelsCollectionPath), hotelData);
                     formNotification.textContent = "Hotel adicionado!";
-                    formNotification.className = 'mt-2 text-center text-sm h-5 text-green-500';
                     hotelForm.reset();
                 } else {
                     formNotification.textContent = "Localização não encontrada.";
-                    formNotification.className = 'mt-2 text-center text-sm h-5 text-red-500';
                 }
             } catch (error) {
                 console.error("Erro no formulário: ", error);
                 formNotification.textContent = "Erro ao adicionar.";
-                formNotification.className = 'mt-2 text-center text-sm h-5 text-red-500';
             } finally {
                 buttonText.textContent = 'Buscar e Adicionar Hotel';
                 loadingSpinner.classList.add('hidden');
-                submitButton.disabled = false;
-                setTimeout(() => formNotification.textContent = '', 4000);
-            }
-        });
-
-        // --- LÓGICA DA VISÃO DO CLIENTE E MODALS ---
-        document.body.addEventListener('click', async (e) => {
-            const itineraryButton = e.target.closest('.itinerary-btn-js');
-            if (itineraryButton) {
-                const itineraryLoader = document.getElementById('itinerary-loader');
-                const itineraryContent = document.getElementById('itinerary-content');
-                itineraryModal.classList.remove('hidden');
-                itineraryModal.classList.add('flex');
-                itineraryContent.innerHTML = '';
-                itineraryLoader.style.display = 'flex';
-                // ... (lógica existente para chamar a IA)
-            }
-        });
-
-        closeItineraryModalBtn.addEventListener('click', () => {
-            itineraryModal.classList.add('hidden');
-            itineraryModal.classList.remove('flex');
-        });
-
-        // --- LÓGICA DE EXCLUSÃO ---
-        const showDeleteModal = (id) => { deleteModal.dataset.deleteId = id; deleteModal.classList.remove('hidden'); deleteModal.classList.add('flex'); };
-        const hideDeleteModal = () => { deleteModal.classList.add('hidden'); deleteModal.classList.remove('flex'); };
-        
-        adminHotelList.addEventListener('click', (e) => {
-            const deleteButton = e.target.closest('.delete-btn-js');
-            if (deleteButton) showDeleteModal(deleteButton.dataset.id);
-        });
-
-        cancelDeleteBtn.addEventListener('click', hideDeleteModal);
-
-        confirmDeleteBtn.addEventListener('click', async () => {
-            const hotelId = deleteModal.dataset.deleteId;
-            if (hotelId && db) {
-                try {
-                    await deleteDoc(doc(db, hotelsCollectionPath, hotelId));
-                } catch (error) { console.error("Erro ao excluir o hotel: ", error); } 
-                finally { hideDeleteModal(); }
+                document.getElementById('submit-button').disabled = false;
+                setTimeout(() => formNotification.textContent = '', 5000);
             }
         });
 
         // --- FUNÇÕES DE RENDERIZAÇÃO ---
         function renderAdminView(hotels) {
+            if (!adminMap) return;
             adminHotelList.innerHTML = '';
             adminMarkerGroup.clearLayers();
             if (!hotels || hotels.length === 0) { adminHotelList.innerHTML = '<p>Nenhum hotel adicionado ainda.</p>'; return; }
@@ -279,26 +272,14 @@
             hotels.forEach(hotel => {
                 const card = document.createElement('div');
                 card.className = 'p-4 bg-gray-100 dark:bg-gray-700 rounded-lg flex justify-between items-center';
-                
-                const infoDiv = document.createElement('div');
-                infoDiv.className = 'cursor-pointer flex-grow mr-4';
-                infoDiv.innerHTML = `<h3 class="font-bold">${hotel.name}</h3><p class="text-sm text-gray-600 dark:text-gray-400">${hotel.location}</p>`;
-                infoDiv.addEventListener('click', () => adminMap.flyTo([hotel.lat, hotel.lon], 14));
-
-                const deleteButton = document.createElement('button');
-                deleteButton.className = 'delete-btn-js text-red-500 hover:text-red-700 p-2 flex-shrink-0';
-                deleteButton.dataset.id = hotel.id;
-                deleteButton.innerHTML = `<ion-icon name="trash-outline" class="text-2xl pointer-events-none"></ion-icon>`;
-                
-                card.appendChild(infoDiv);
-                card.appendChild(deleteButton);
+                card.innerHTML = `<div class="info-div-js cursor-pointer flex-grow mr-4" data-lat="${hotel.lat}" data-lon="${hotel.lon}"><h3 class="font-bold">${hotel.name}</h3><p class="text-sm text-gray-600 dark:text-gray-400">${hotel.location}</p></div><button class="delete-btn-js text-red-500 hover:text-red-700 p-2 flex-shrink-0" data-id="${hotel.id}"><ion-icon name="trash-outline" class="text-2xl pointer-events-none"></ion-icon></button>`;
                 adminHotelList.appendChild(card);
-                
                 L.marker([hotel.lat, hotel.lon]).addTo(adminMarkerGroup).bindPopup(`<b>${hotel.name}</b>`);
             });
         }
         
         function renderUserView(hotels) {
+            if (!userMap) return;
             const userResultsList = document.getElementById('user-results-list');
             userMarkerGroup.clearLayers();
             userResultsList.innerHTML = '';
@@ -306,42 +287,45 @@
                  userResultsList.innerHTML = '<p class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md text-center">Nenhum hotel encontrado.</p>';
                  return;
             }
-
             hotels.forEach(hotel => {
-                const popupContent = `<div class="text-base"><h4 class="font-bold">${hotel.name}</h4><p class="my-2">${hotel.description || '<i>Sem descrição disponível.</i>'}</p><button class="itinerary-btn-js w-full bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold py-2 px-3 rounded-md mt-2" data-hotel-name="${hotel.name}" data-hotel-location="${hotel.location}">✨ Criar Roteiro</button></div>`;
+                const popupContent = `<div class="text-base"><h4 class="font-bold">${hotel.name}</h4><p class="my-2">${hotel.description || '<i>Sem descrição disponível.</i>'}</p></div>`;
                 const marker = L.marker([hotel.lat, hotel.lon]).addTo(userMarkerGroup).bindPopup(popupContent, { minWidth: 250 });
-                
                 const resultCard = document.createElement('div');
                 resultCard.className = 'bg-white dark:bg-gray-800 p-3 rounded-lg shadow-md cursor-pointer hover:ring-2 hover:ring-indigo-500 transition-all';
                 resultCard.innerHTML = `<h4 class="font-bold text-indigo-700 dark:text-indigo-400">${hotel.name}</h4><p class="text-sm text-gray-600 dark:text-gray-400">${hotel.location}</p>`;
-                resultCard.addEventListener('click', () => {
-                    userMap.flyTo([hotel.lat, hotel.lon], 15);
-                    marker.openPopup();
-                });
+                resultCard.addEventListener('click', () => { userMap.flyTo([hotel.lat, hotel.lon], 15); marker.openPopup(); });
                 userResultsList.appendChild(resultCard);
             });
         }
-        
-        userSearchInput.addEventListener('input', (e) => {
-            const searchTerm = e.target.value.toLowerCase();
-            const filteredHotels = searchTerm ? allHotels.filter(hotel => (hotel.name?.toLowerCase() || '').includes(searchTerm) || (hotel.location?.toLowerCase() || '').includes(searchTerm)) : allHotels;
-            renderUserView(filteredHotels);
-        });
 
         // --- OUVINTE PRINCIPAL DO FIREBASE ---
         function listenForHotels() {
-            if (!db) return;
-            const q = query(collection(db, hotelsCollectionPath));
-            onSnapshot(q, (querySnapshot) => {
-                allHotels = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderAdminView(allHotels);
-                if (currentView === 'user') {
-                    userSearchInput.dispatchEvent(new Event('input'));
-                }
-            }, (error) => console.error("Erro ao buscar hotéis:", error));
-        }
+            if (!db) {
+                console.error("Firestore não inicializado.");
+                return;
+            }
+            if (hotelsListenerUnsubscribe) {
+                hotelsListenerUnsubscribe();
+            }
 
-        listenForHotels();
+            const q = query(collection(db, hotelsCollectionPath));
+            hotelsListenerUnsubscribe = onSnapshot(q, (querySnapshot) => {
+                allHotels = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                if (auth.currentUser && !auth.currentUser.isAnonymous) {
+                    renderAdminView(allHotels);
+                } else {
+                    renderUserView(allHotels);
+                }
+            }, (error) => {
+                console.error("Erro ao buscar hotéis:", error);
+                const adminList = document.getElementById('admin-hotel-list');
+                const userList = document.getElementById('user-results-list');
+                const errorMsg = `<p class="text-red-500">Erro ao carregar os hotéis. Verifique as permissões do banco de dados.</p>`;
+                if(adminList) adminList.innerHTML = errorMsg;
+                if(userList) userList.innerHTML = errorMsg;
+            });
+        }
     </script>
 </body>
 </html>
